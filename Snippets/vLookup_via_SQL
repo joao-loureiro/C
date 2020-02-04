@@ -1,0 +1,246 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Data.OleDb;
+using System.Data.SqlClient;
+using System.IO;
+using OfficeOpenXml;
+
+namespace Teste_importacao_SQL_EXCEL
+{
+    public partial class Form1 : Form
+    {
+
+        //#############
+        //## STRINGS ##
+        //#############
+
+        //Define por defeito o nome do ficheiro a exportar
+        string ficheiro = @"C:\Users\joao.loureiro\Desktop\survey-xxxx-translation-ar-sent.xlsx";
+
+        //Define a ligação SQL
+        string ligacaoSql = "Server=localhost\\SQLEXPRESS; Database=TraducoesMEA; Integrated Security=true; ";
+        // #OU COM AUTENTICAÇÃO# string ligacaoSql = "Server=KTLIBL0105\\SQLEXPRESS;Database=ROC_ES;User ID=panelsmartaf2;Password=PanelSmartaf1;Trusted_Connection=True; ";
+        //Variáveis necessárias para construir um ficheiro demográfico a partir dos weights extraídos do powerview (essencialmente usadas pelo método ImportarWeight())
+
+        //Define as tabelas SQL a usar
+        string tabelaSqlTraducoesAnteriores = "[dbo].[TraducoesAnteriores]";
+        string tabelaSqlTraducoesActuais = "[dbo].[TraducoesActuais]";
+
+        //Define os queries SQL a usar
+        string queryApagarTraducoesAnteriores = "DELETE FROM [dbo].[TraducoesAnteriores]";
+        string queryApagarTraducoesActuais = "DELETE FROM [dbo].[TraducoesActuais]";
+        string queryGerarTraducoesParaEnviar = "WITH temp AS " +
+            "(SELECT DISTINCT " +
+            "[dbo].[TraducoesActuais].[c1], " +
+            "[dbo].[TraducoesActuais].[c2], " +
+            "[dbo].[TraducoesAnteriores].[c3], " +
+            "CAST([dbo].[TraducoesActuais].[c4] AS NUMERIC) AS c4 " +
+            "FROM [dbo].[TraducoesActuais] " +
+            "LEFT JOIN [dbo].[TraducoesAnteriores] " +
+            "ON [dbo].[TraducoesActuais].c2 = [dbo].[TraducoesAnteriores].c2) " +
+            "SELECT c1 as [Field ID], c2 as [Original text], c3 as [ar] FROM temp ORDER BY CAST(c4 AS NUMERIC) ";
+
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        //#############
+        //## MÉTODOS ##
+        //#############
+
+        //Método que fixa o nome do ficheiro de acordo com o nome da survey actual
+        public void fixaNomeFicheiro(string nomeFicheiro)
+        {
+            //Verifica se se trata de um ficheiro de extensão xlsx
+            if (nomeFicheiro.Contains(".xlsx")) {
+                ficheiro = nomeFicheiro.Replace(".xlsx", "_sent.xlsx");
+                //Apaga o ficheiro em questão se existir
+                if (File.Exists(ficheiro))
+                {
+                    File.Delete(ficheiro);
+                }
+            //Ou se se trata de um ficheiro de extensão xls
+            } else if (nomeFicheiro.Contains(".xls")) 
+            {
+                //Apaga o ficheiro em questão se existir
+                ficheiro = nomeFicheiro.Replace(".xlsx", "_sent.xlsx");
+                if (File.Exists(ficheiro))
+                {
+                    File.Delete(ficheiro);
+                }
+            }
+            //Devolve o nome do ficheiro
+            //MessageBox.Show(ficheiro);
+        }
+
+        //Método que pode ser utilizado para executar comados SQL
+        private DataTable runQuerySqlServer(String query)
+        {
+            SqlConnection _myConn = new SqlConnection(ligacaoSql);
+
+            _myConn.Open();
+
+            DataTable data = new DataTable();
+            SqlDataAdapter _myadapter = new SqlDataAdapter(query, _myConn);
+            _myadapter.SelectCommand.CommandTimeout = 0;
+            _myadapter.Fill(data);
+            _myConn.Close();
+            _myConn = null;
+            _myadapter = null;
+            return data;
+        }
+
+        //Método para fazer a leitura de um ficheiro Excel e importação para uma tabela SQL
+        private void importExcelToSQl(String argumentoFicheiro, String argumentoTabela)
+        {
+            //String contendo a ligação ao ficheiro Excel: o parâmetro HDR como YES lê a primeira row como equivalendo aos títulos das colunas
+            string ligacaoXL = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + argumentoFicheiro + ";Extended Properties=\"Excel 12.0;HDR=YES;IMEX=1\"";
+
+            //Ligação ao ficheiro Excel
+            OleDbConnection ligacaoOleDB = new OleDbConnection(ligacaoXL);
+            if (ligacaoOleDB.State == ConnectionState.Closed)
+            {
+                ligacaoOleDB.Open();
+            }
+
+            //String contendo o Comando SQL que vai seleccionar os dados do ficheiro Excel
+            string strSQL = "SELECT * FROM [ar$]";
+            //Comando OleDb que associa a ligação ao ficheiro excel e o comando 
+            OleDbCommand comandoOleDB = new OleDbCommand(strSQL, ligacaoOleDB);
+
+            //Cria uma tabela nova para onde vão ser copiados os dados do ficheiro Excel
+            DataTable _dtTabela = new DataTable();
+            //Cria um adaptador para fazer o preenchimento dos dados
+            OleDbDataAdapter adapter = new OleDbDataAdapter(comandoOleDB);
+            //Preenche os dados
+            adapter.Fill(_dtTabela);
+            //Torna o comando nulo
+            comandoOleDB = null;
+            //Torna o adaptador nulo
+            adapter = null;
+
+            _dtTabela.Columns.Add("ID");
+            int dummy = 0;
+
+            //Para cada linha da tabela, exibe a coluna no numero em parentesis rectos/adiciona o número da linha
+            foreach (DataRow linha in _dtTabela.Rows)
+            {
+                dummy += 1;
+                //MessageBox.Show(linha[0].ToString());
+                linha["ID"] = dummy;
+            }
+
+            MessageBox.Show("Ficheiro lido");
+
+            //Usando bulkcopy, transfere os dados para a tabela definida em DestinationTableName
+            using (SqlBulkCopy bulkCopy = new SqlBulkCopy(ligacaoSql))
+            {
+                bulkCopy.DestinationTableName = argumentoTabela;
+
+                try
+                {
+                    // Escreve os dados na tabela
+                    bulkCopy.WriteToServer(_dtTabela);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+
+                MessageBox.Show("Traduções importadas para a tabela SQL");
+            }
+
+        }
+
+        //Devolve o produto final: um xls que é o resultado do query que une as traducoes anteriores com as traducoes actuais
+        private void exportarXL()
+        {
+            //Cria uma DataTable para alojar os resultados
+            using (DataTable tabelaDados = runQuerySqlServer(queryGerarTraducoesParaEnviar))
+            {
+                using (ExcelPackage xL = new ExcelPackage())
+                {
+                    xL.Workbook.Worksheets.Add("ar");
+                    var xlWorksheet = xL.Workbook.Worksheets["ar"];
+
+                    //Copia os dados da DataTable
+                    xlWorksheet.Cells["A1"].LoadFromDataTable(tabelaDados, true);
+                    //Torna o cabeçalho bold
+                    xlWorksheet.Cells["A1:C1"].Style.Font.Bold = true;
+                    //Faz o wrap às colunas
+                    xlWorksheet.Cells["A:C"].Style.WrapText = true;
+
+                    //Cria o ficheiro
+                    Stream stream = File.Create(ficheiro);
+
+                    //Salva o ficheiro
+                    xL.SaveAs(stream);
+
+                    //Fecha o stream
+                    stream.Close();
+
+                }
+            }
+        }
+
+        //############
+        //## BOTÕES ##
+        //############
+
+        //Botão para fazer a importação do ficheiro
+        private void Button1_Click(object sender, EventArgs e)
+        {
+            //Cria um diálogo para a escolha de um ficheiro Excel
+            OpenFileDialog dialogoEscolhaFicheiro = new OpenFileDialog();
+            dialogoEscolhaFicheiro.Filter = "Excel files (*.xls)|*.xlsx";
+            dialogoEscolhaFicheiro.FilterIndex = 1;
+            dialogoEscolhaFicheiro.ShowDialog();
+
+            //Fixa a string ficheiro com o ficheiro escolhido no diálogo
+            string ficheiro = dialogoEscolhaFicheiro.FileName.ToString();
+
+            //Apaga o que quer que esteja na tabela das traducoes anteriores
+            runQuerySqlServer(queryApagarTraducoesAnteriores);
+
+            //Importa para a tabela das traducoes anteriores o conteudo do ficheiro excel contendo as traducoes anteriores
+            importExcelToSQl(ficheiro, tabelaSqlTraducoesAnteriores);
+        }
+
+        private void Button2_Click_1(object sender, EventArgs e)
+        {
+            //Cria um diálogo para a escolha de um ficheiro Excel
+            OpenFileDialog dialogoEscolhaFicheiro = new OpenFileDialog();
+            dialogoEscolhaFicheiro.Filter = "Excel files (*.xls)|*.xlsx";
+            dialogoEscolhaFicheiro.FilterIndex = 1;
+            dialogoEscolhaFicheiro.ShowDialog();
+
+            //Fixa a string ficheiro com o ficheiro escolhido no diálogo
+            string ficheiro = dialogoEscolhaFicheiro.FileName.ToString();
+
+            //Altera o nome do ficheiro fixado por defeito para o nome da tradução mais actual, seguido de _sent e extensão
+            fixaNomeFicheiro(ficheiro);
+
+            //Apaga o que quer que esteja na tabela das traducoes actuais
+            runQuerySqlServer(queryApagarTraducoesActuais);
+
+            //Importa para a tabela das traducoes actuais o conteudo do ficheiro excel contendo as traducoes actuais
+            importExcelToSQl(ficheiro, tabelaSqlTraducoesActuais);
+        }
+
+        private void Button3_Click(object sender, EventArgs e)
+        {
+            //Método que permite correr o 
+            exportarXL();
+
+            MessageBox.Show("Ficheiro gerado");
+        }
+    }
+}
