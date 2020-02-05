@@ -12,14 +12,13 @@ using System.Data.SqlClient;
 using System.IO;
 using OfficeOpenXml;
 
-namespace Teste_importacao_SQL_EXCEL
+namespace Traducoes
 {
     public partial class Form1 : Form
     {
-
-        //#############
-        //## STRINGS ##
-        //#############
+        //###############
+        //## VARIÁVEIS ##
+        //###############
 
         //Define por defeito o nome do ficheiro a exportar
         string ficheiro = @"C:\Users\joao.loureiro\Desktop\survey-xxxx-translation-ar-sent.xlsx";
@@ -47,6 +46,10 @@ namespace Teste_importacao_SQL_EXCEL
             "ON [dbo].[TraducoesActuais].c2 = [dbo].[TraducoesAnteriores].c2) " +
             "SELECT c1 as [Field ID], c2 as [Original text], c3 as [ar] FROM temp ORDER BY CAST(c4 AS NUMERIC) ";
 
+        //Variável utilizada para forçar todos os botões a serem pressionados
+        bool traducoesAnterioresImportadas = false;
+        bool traducoesActuaisImportadas = false;
+
         public Form1()
         {
             InitializeComponent();
@@ -60,15 +63,17 @@ namespace Teste_importacao_SQL_EXCEL
         public void fixaNomeFicheiro(string nomeFicheiro)
         {
             //Verifica se se trata de um ficheiro de extensão xlsx
-            if (nomeFicheiro.Contains(".xlsx")) {
+            if (nomeFicheiro.Contains(".xlsx"))
+            {
                 ficheiro = nomeFicheiro.Replace(".xlsx", "_sent.xlsx");
                 //Apaga o ficheiro em questão se existir
                 if (File.Exists(ficheiro))
                 {
                     File.Delete(ficheiro);
                 }
-            //Ou se se trata de um ficheiro de extensão xls
-            } else if (nomeFicheiro.Contains(".xls")) 
+                //Ou se se trata de um ficheiro de extensão xls
+            }
+            else if (nomeFicheiro.Contains(".xls"))
             {
                 //Apaga o ficheiro em questão se existir
                 ficheiro = nomeFicheiro.Replace(".xlsx", "_sent.xlsx");
@@ -212,6 +217,9 @@ namespace Teste_importacao_SQL_EXCEL
 
             //Importa para a tabela das traducoes anteriores o conteudo do ficheiro excel contendo as traducoes anteriores
             importExcelToSQl(ficheiro, tabelaSqlTraducoesAnteriores);
+
+            //Acrescenta o valor de 1 à variável necessária para gerar um ficheiro final
+            traducoesAnterioresImportadas = true;
         }
 
         private void Button2_Click_1(object sender, EventArgs e)
@@ -233,14 +241,30 @@ namespace Teste_importacao_SQL_EXCEL
 
             //Importa para a tabela das traducoes actuais o conteudo do ficheiro excel contendo as traducoes actuais
             importExcelToSQl(ficheiro, tabelaSqlTraducoesActuais);
+
+            //Acrescenta o valor de 1 à variável necessária para gerar um ficheiro final
+            traducoesActuaisImportadas = true;
         }
 
         private void Button3_Click(object sender, EventArgs e)
         {
-            //Método que permite correr o 
-            exportarXL();
+            //Acrescenta o valor de 1 à variável necessária para gerar um ficheiro final
+            if (traducoesAnterioresImportadas == true & traducoesActuaisImportadas == true)
+            {
+                //Método que permite correr o 
+                exportarXL();
 
-            MessageBox.Show("Ficheiro gerado");
+                MessageBox.Show("Ficheiro gerado");
+
+                //Re-define a variável dadosImportados no valor de 0
+                traducoesActuaisImportadas = true;
+                traducoesActuaisImportadas = true;
+
+            } else {
+
+                MessageBox.Show("É necessário importar (ambas) as traduções, primeiro");
+
+            }
         }
     }
 }
