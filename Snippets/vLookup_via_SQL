@@ -25,7 +25,6 @@ namespace Traducoes
 
         //Define a ligação SQL
         string ligacaoSql = "Server=localhost\\SQLEXPRESS; Database=TraducoesMEA; Integrated Security=true; ";
-        // #OU COM AUTENTICAÇÃO# string ligacaoSql = "Server=KTLIBL0105\\SQLEXPRESS;Database=ROC_ES;User ID=panelsmartaf2;Password=PanelSmartaf1;Trusted_Connection=True; ";
         //Variáveis necessárias para construir um ficheiro demográfico a partir dos weights extraídos do powerview (essencialmente usadas pelo método ImportarWeight())
 
         //Define as tabelas SQL a usar
