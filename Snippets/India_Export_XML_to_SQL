@@ -1,0 +1,582 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.IO;
+
+namespace India_Regular_XML_to_SQL_Converter
+{
+    public partial class Form1 : Form
+    {
+        //Variáveis
+        String questionsSQL, ficheiroXML, answersSQL, choicesSQL, preconditionSQL, postconditionSQL, SQLInstruction, dot = ".";
+        String[] linhasFicheiroXML;
+        Boolean importacao = false, item;
+        String qType, qText, qAlias, qMin, qMax, qMin_select, qMax_select, qMin_length, qMax_length, qNumeric_type, qShow_full_image, qBarcode_type, qMedia_locator, qDisable_back_button, qOptional_response, qImage_type, qImage_source, qImage_size_type, qAdditional_text, qInstruction_text, qOrder, qEnable_lookup, aId, aIf, aExclusive, aAnchored, aLabel, xPCFinalGoto, ePreIf, ePostIf, ePreThen, ePostThen, ePreElse, ePostElse;
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        public Form1()
+        {
+            Clean();
+            InitializeComponent();
+        }
+
+        //Diálogo de ficheiro
+        private void button1_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dialogoFicheiro = new OpenFileDialog();
+            dialogoFicheiro.InitialDirectory = @"C:\Users\joao.loureiro\Desktop";
+            dialogoFicheiro.Filter = "xml files (*.xml)|*.xml|All files (*.*)|*.*";
+            dialogoFicheiro.ShowDialog();
+            ficheiroXML = dialogoFicheiro.FileName;
+            importacao = true;
+        }
+
+        //Limpeza de variáveis de variáveis
+        private void Clean()
+        {
+            answersSQL = ""; choicesSQL = ""; preconditionSQL = "";  postconditionSQL = ""; SQLInstruction = "";
+            qType = "NULL"; qText = "NULL"; qAlias = "NULL"; qMin = "NULL"; qMax = "NULL"; qMin_select = "NULL"; qMax_select = "NULL"; qMin_length = "NULL"; qMax_length = "NULL"; qNumeric_type = "NULL"; qShow_full_image = "NULL"; qBarcode_type = "NULL"; qMedia_locator = "NULL"; qDisable_back_button = "NULL"; qOptional_response = "NULL"; qImage_type = "NULL"; qImage_source = "NULL"; qImage_size_type = "NULL"; qAdditional_text = "NULL"; qInstruction_text = "NULL"; qOrder = "NULL"; qEnable_lookup = "NULL"; aId = "NULL"; aIf = "NULL"; aExclusive = "NULL"; aAnchored = "NULL"; aLabel = "NULL"; xPCFinalGoto = "NULL"; ePreIf = "NULL"; ePostIf = "NULL"; ePreThen = "NULL"; ePostThen = "NULL"; ePreElse = "NULL"; ePostElse = "NULL";
+            item = false;
+        }
+        
+
+        //Agregador de texto | Perguntas
+        private String concatQuestionParams()
+        {
+            String concatenatedQuestionParams = "";
+            if (qMin != "NULL") 
+            { concatenatedQuestionParams = concatenatedQuestionParams + "min=\"" + qMin + "\" "; }
+            if (qMax != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "max=\"" + qMax + "\" "; }
+            if (qMin_select != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "min_select=\"" + qMin_select + "\" "; }
+            if (qMax_select != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "max_select=\"" + qMax_select + "\" "; }
+            if (qMin_length != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "min_length=\"" + qMin_length + "\" "; }
+            if (qMax_length != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "max_lenght=\"" + qMax_length + "\" "; }
+            if (qNumeric_type != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "numeric_type=\"" + qNumeric_type + "\" "; }
+            if (qShow_full_image != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "show_full_image=\"" + qShow_full_image + "\" "; }
+            if (qBarcode_type != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "barcode_type=\"" + qBarcode_type + "\" "; }
+            if (qMedia_locator != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "media_locator=\"" + qMedia_locator + "\" "; }
+            if (qDisable_back_button != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "disable_back_button=\"" + qDisable_back_button + "\" "; }
+            if (qOptional_response != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "optional_response=\"" + qOptional_response + "\" "; }
+            if (qImage_type != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "image_type=\"" + qImage_type + "\" "; }
+            if (qImage_source != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "image_source=\"" + qImage_source + "\" "; }
+            if (qImage_size_type != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "image_size_type=\"" + qImage_size_type + "\" "; }
+            if (qAdditional_text != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "additional_text=\"" + qAdditional_text + "\" "; }
+            if (qInstruction_text != "NULL")
+            { concatenatedQuestionParams = concatenatedQuestionParams + "instruction_text=\"" + qInstruction_text + "\" "; }
+            if (concatenatedQuestionParams != "")
+            {
+                return "'" + concatenatedQuestionParams.Substring(0, concatenatedQuestionParams.Length - 1) + "'";
+            }
+            else
+            {
+                return "NULL";
+            }
+            
+        }
+
+        //Agregador de texto | Respostas
+        private String concatAnswerParams()
+        {
+            String concatenatedAnswerParams = "";
+            if (aIf != "NULL")
+            { concatenatedAnswerParams = concatenatedAnswerParams + "if=\"" + aIf + "\" "; }
+            if (aAnchored != "NULL")
+            { concatenatedAnswerParams = concatenatedAnswerParams + "anchored=\"" + aAnchored + "\" "; }
+            if (aExclusive != "NULL")
+            { concatenatedAnswerParams = concatenatedAnswerParams + "exclusive=\"" + aExclusive + "\" "; }
+            if (concatenatedAnswerParams != "")
+            {
+                return "'" + concatenatedAnswerParams.Substring(0, concatenatedAnswerParams.Length - 1) + "'";
+            } 
+            else
+            {
+                return "NULL";
+            }
+         
+        }
+
+        //Agregador de texto | Preconditions
+        private String concatXMLPreconditionParams()
+        {
+            String concatenatedPreconditionParams = "";
+            if (ePreIf != "NULL")
+            { concatenatedPreconditionParams = concatenatedPreconditionParams + "if=\"" + ePreIf + "\" "; }
+            if (ePreThen != "NULL")
+            { concatenatedPreconditionParams = concatenatedPreconditionParams + "then=\"" + ePreThen + "\" "; }
+            if (ePreElse != "NULL")
+            { concatenatedPreconditionParams = concatenatedPreconditionParams + "else=\"" + ePreElse + "\" "; }
+            if (concatenatedPreconditionParams != "")
+            {
+                return concatenatedPreconditionParams.Substring(0, concatenatedPreconditionParams.Length - 1);
+            }
+            else
+            {
+                return "NULL";
+            }
+        }
+
+        //Agregador de texto | Postconditions
+        private String concatXMLPostconditionParams()
+        {
+            String concatenatedPostconditionParams = "";
+            if (ePostIf != "NULL")
+            { concatenatedPostconditionParams = concatenatedPostconditionParams + "if=\"" + ePostIf + "\" "; }
+            if (ePostThen != "NULL")
+            { concatenatedPostconditionParams = concatenatedPostconditionParams + "then=\"" + ePostThen + "\" "; }
+            if (ePostElse != "NULL")
+            { concatenatedPostconditionParams = concatenatedPostconditionParams + "else=\"" + ePostElse + "\" "; }
+            if (concatenatedPostconditionParams != "")
+            {
+                return concatenatedPostconditionParams.Substring(0, concatenatedPostconditionParams.Length - 1);
+            }
+            else
+            {
+                return "NULL";
+            }
+        }
+
+        //Escreve o ficheiro final
+        private void addToFinalSQLQuery(string SQLInstruction)
+        {
+            File.AppendAllText(ficheiroXML.Substring(0, ficheiroXML.Length - 3) + "sql", "\n\n" + SQLInstruction);
+        }
+
+        //Leitor de ficheiro
+        private void button2_Click(object sender, EventArgs e)
+        {
+            if (importacao == true)
+            {
+                linhasFicheiroXML = File.ReadAllLines(ficheiroXML);
+                //Define o valor maximo da progressBar1 de acordo com o número de linhas do XML
+                progressBar1.Maximum = linhasFicheiroXML.Length;
+                progressBar1.Visible = true;
+                foreach (string linha in linhasFicheiroXML)
+                {
+                    //Demarca o inicio do item
+                    if (linha.Contains("<item"))
+                    {
+                        item = true;
+                    }
+
+                    //Recupera a info de type (Question)
+                    if (linha.Contains("<question") && linha.Contains("type="))
+                    {
+                        qType = "'" + linha.Substring(linha.IndexOf("type=\"") + "type=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("type=\"") + "type=\"".Length).ToString().IndexOf("\"")) + "'";
+                    }
+
+                    //Recupera a info de text (Question)
+                    if (linha.Contains("<question") && linha.Contains("text="))
+                    {
+                        qText = "'" + linha.Substring(linha.IndexOf("text=\"") + "text=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("text=\"") + "text=\"".Length).ToString().IndexOf("\"")) + "'";
+                    }
+
+                    //Recupera a info de alias (Question)
+                    if (linha.Contains("<question") && linha.Contains("alias="))
+                    {
+                        qAlias = "'" + linha.Substring(linha.IndexOf("alias=\"") + "alias=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("alias=\"") + "alias=\"".Length).ToString().IndexOf("\"")) + "'";
+                    }
+
+                    //Recupera a info de min (Question)
+                    if (linha.Contains("<question") && linha.Contains("min="))
+                    {
+                        qMin = linha.Substring(linha.IndexOf("min=\"") + "min=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("min=\"") + "min=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de max (Question)
+                    if (linha.Contains("<question") && linha.Contains("max="))
+                    {
+                        qMax = linha.Substring(linha.IndexOf("max=\"") + "max=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("max=\"") + "max=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de min_length (Question)
+                    if (linha.Contains("<question") && linha.Contains("min_length="))
+                    {
+                        qMin_length = linha.Substring(linha.IndexOf("min_length=\"") + "min_length=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("min_length=\"") + "min_length=\"".Length).ToString().IndexOf("\""));
+                    }
+
+                    //Recupera a info de max_length (Question)
+                    if (linha.Contains("<question") && linha.Contains("max_length="))
+                    {
+                        qMax_length = linha.Substring(linha.IndexOf("max_length=\"") + "max_length=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("max_length=\"") + "max_length=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de min_select (Question)
+                    if (linha.Contains("<question") && linha.Contains("min_select="))
+                    {
+                        qMin_select = linha.Substring(linha.IndexOf("min_select=\"") + "min_select=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("min_select=\"") + "min_select=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de max_select (Question)
+                    if (linha.Contains("<question") && linha.Contains("max_select="))
+                    {
+                        qMax_select = linha.Substring(linha.IndexOf("max_select=\"") + "max_select=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("max_select=\"") + "max_select=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de show_full_image (Question)
+                    if (linha.Contains("<question") && linha.Contains("show_full_image="))
+                    {
+                        qShow_full_image = linha.Substring(linha.IndexOf("show_full_image=\"") + "show_full_image=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("show_full_image=\"") + "show_full_image=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de numeric_type (Question)
+                    if (linha.Contains("<question") && linha.Contains("numeric_type="))
+                    {
+                        qNumeric_type = linha.Substring(linha.IndexOf("numeric_type=\"") + "numeric_type=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("numeric_type=\"") + "numeric_type=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de barcode_type (Question)
+                    if (linha.Contains("<question") && linha.Contains("barcode_type="))
+                    {
+                        qBarcode_type = linha.Substring(linha.IndexOf("barcode_type=\"") + "barcode_type=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("barcode_type=\"") + "barcode_type=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de media_locator (Question)
+                    if (linha.Contains("<question") && linha.Contains("media_locator="))
+                    {
+                        qMedia_locator = linha.Substring(linha.IndexOf("media_locator=\"") + "media_locator=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("media_locator=\"") + "media_locator=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de disable_back_button (Question)
+                    if (linha.Contains("<question") && linha.Contains("disable_back_button="))
+                    {
+                        qDisable_back_button = linha.Substring(linha.IndexOf("disable_back_button=\"") + "disable_back_button=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("disable_back_button=\"") + "disable_back_button=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de optional_response (Question)
+                    if (linha.Contains("<question") && linha.Contains("optional_response="))
+                    {
+                        qOptional_response = linha.Substring(linha.IndexOf("optional_response=\"") + "optional_response=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("optional_response=\"") + "optional_response=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de image_type (Question)
+                    if (linha.Contains("<question") && linha.Contains("image_type="))
+                    {
+                        qImage_type = linha.Substring(linha.IndexOf("image_type=\"") + "image_type=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("image_type=\"") + "image_type=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de image_source (Question)
+                    if (linha.Contains("<question") && linha.Contains("image_source="))
+                    {
+                        qImage_source = linha.Substring(linha.IndexOf("image_source=\"") + "image_source=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("image_source=\"") + "image_source=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de image_size_type (Question)
+                    if (linha.Contains("<question") && linha.Contains("image_size_type="))
+                    {
+                        qImage_size_type = linha.Substring(linha.IndexOf("image_size_type=\"") + "image_size_type=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("image_size_type=\"") + "image_size_type=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de additional_text (Question)
+                    if (linha.Contains("<question") && linha.Contains("additional_text="))
+                    {
+                        qAdditional_text = linha.Substring(linha.IndexOf("additional_text=\"") + "additional_text=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("additional_text=\"") + "additional_text=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de instruction_text (Question)
+                    if (linha.Contains("<question") && linha.Contains("instruction_text="))
+                    {
+                        qInstruction_text = linha.Substring(linha.IndexOf("instruction_text=\"") + "instruction_text=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("instruction_text=\"") + "instruction_text=\"".Length).ToString().IndexOf("\""));
+                    }
+
+                    //Recupera a info de order (Question)
+                    if (linha.Contains("<question") && linha.Contains("order="))
+                    {
+                        if (linha.Substring(linha.IndexOf("order=\"") + "order=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("order=\"") + "order=\"".Length).ToString().IndexOf("\"")) == "asc")
+                        {
+                            qOrder = "'A'";
+                        }
+                        else if (linha.Substring(linha.IndexOf("order=\"") + "order=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("order=\"") + "order=\"".Length).ToString().IndexOf("\"")) == "randomized")
+                        {
+                            qOrder = "'R'";
+                        }
+                        else
+                        {
+                            qOrder = "'F'";
+                        }
+
+                    }
+
+                    //Recupera a info de order (Question)
+                    if (linha.Contains("<question") && linha.Contains("enable_lookup="))
+                    {
+                        if (linha.Substring(linha.IndexOf("enable_lookup=\"") + "enable_lookup=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("enable_lookup=\"") + "enable_lookup=\"".Length).ToString().IndexOf("\"")) == "true")
+                        {
+                            qEnable_lookup = "'" + "1" + "'";
+                        }
+                        else
+                        {
+                            qEnable_lookup = "'" + "0" + "'";
+                        }
+                    }
+
+                    //Recupera a info de id (Answers)
+                    if (linha.Contains("<choice") && linha.Contains("id="))
+                    {
+                        aId = "'" + linha.Substring(linha.IndexOf("id=\"") + "id=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("id=\"") + "id=\"".Length).ToString().IndexOf("\"")) + "'";
+                    }
+
+                    //Recupera a info de exclusive (Answers)
+                    if (linha.Contains("<choice") && linha.Contains("exclusive="))
+                    {
+                        aExclusive = linha.Substring(linha.IndexOf("exclusive=\"") + "exclusive=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("exclusive=\"") + "exclusive=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de anchored (Answers)
+                    if (linha.Contains("<choice") && linha.Contains("anchored="))
+                    {
+                        aAnchored = linha.Substring(linha.IndexOf("anchored=\"") + "anchored=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("anchored=\"") + "anchored=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de if (Answers)
+                    if (linha.Contains("<choice") && linha.Contains("if="))
+                    {
+                        aIf = linha.Substring(linha.IndexOf("if=\"") + "if=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("if=\"") + "if=\"".Length).ToString().IndexOf("\""));
+
+                    }
+
+                    //Recupera a info de text (Answers)
+                    if (linha.Contains("<choice") && linha.Contains("label="))
+                    {                      
+                        aLabel = "'" + linha.Substring(linha.IndexOf("label=\"") + "label=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("label=\"") + "label=\"".Length).ToString().IndexOf("\"")) + "'";
+
+                        //Define uma string diferente consoante se trate de um UPDATE ou de um INSERT
+                        if (radioButton1.Checked == false) 
+                        {
+                            choicesSQL = "INSERT INTO [panelsmartindiaRegular].[dbo].[psAnswersStatic] ([survey],[qCode],[aText],[aNextQ],[aSeq],[aVar1],[aVar2],[aVar3],[aVar4],[aVar5],[aVar6],[aVar7],[aVar8],[aVar9],[aVar10],[aVar11],[aVar12],[aVar13],[aVar14],[aVar15],[aParams]) \n VALUES ";
+                        }
+                        else if (radioButton1.Checked == true)
+                        {
+                            choicesSQL = "UPDATE [panelsmartindiaRegular].[dbo].[psAnswersStatic]\nSET ";
+                        }
+
+                        //Completa essa string com valores apropriados, consoante se trate do primeiro query ou não e se trate de um UPDATE ou de um INSERT
+                        if (answersSQL == "" && radioButton1.Checked == false) 
+                        {
+                            answersSQL = choicesSQL + "('INDLUMI'," + qAlias + "," + aLabel + ",NULL," + aId + "," + aId + ",NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL," + concatAnswerParams() + ")";
+                        }
+                        else if (answersSQL != "" && radioButton1.Checked == false)
+                        {
+                            answersSQL = answersSQL + "\n" + choicesSQL + "('INDLUMI'," + qAlias + "," + aLabel + ",NULL," + aId + "," + aId + ",NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL," + concatAnswerParams() + ")";
+                        }
+                        else if (answersSQL == "" && radioButton1.Checked == true)
+                        {
+                            answersSQL = choicesSQL + "[qCode] = " + qAlias + ", [aText] = " + aLabel + ", [aSeq] = " + aId + ", [aVar1] = " + aId + ", [aParams] = " + concatAnswerParams() + "\nWHERE [survey] = 'INDLUMI' and [qCode] = " + qAlias;
+                        }
+                        else if (answersSQL != "" && radioButton1.Checked == true)
+                        {
+                            answersSQL = answersSQL + "\n" + choicesSQL + "[qCode] = " + qAlias + ", [aText] = " + aLabel + ", [aSeq] = " + aId + ", [aVar1] = " + aId + ", [aParams] = " + concatAnswerParams() + "\nWHERE [survey] = 'INDLUMI' and [qCode] = " + qAlias;
+                        }
+
+                    }
+
+                    //Recupera a info da postcondition final (Answers/ExtraXML)
+
+                    if (linha.Contains("<precondition") && linha.Contains("if") || linha.Contains("<postcondition") && linha.Contains("if") || linha.Contains("<precondition") && linha.Contains("then") || linha.Contains("<postcondition") && linha.Contains("then") || linha.Contains("<precondition") && linha.Contains("else") || linha.Contains("<postcondition") && linha.Contains("else")) 
+                        {
+                        if (linha.Contains("<precondition")) 
+                            {
+                            //Recupera a info de if em precondition (ExtraXML)
+                            if (linha.Contains("<precondition") && linha.Contains("if"))
+                            {
+                                ePreIf = linha.Substring(linha.IndexOf("if=\"") + "if=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("if=\"") + "if=\"".Length).ToString().IndexOf("\""));
+                            }
+
+                            //Recupera a info de then em precondition (ExtraXML)
+                            if (linha.Contains("<precondition") && linha.Contains("then"))
+                            {
+                                ePreThen = linha.Substring(linha.IndexOf("then=\"") + "then=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("then=\"") + "then=\"".Length).ToString().IndexOf("\""));
+                            }
+
+                            //Recupera a info de then em precondition (ExtraXML)
+                            if (linha.Contains("<precondition") && linha.Contains("else"))
+                            {
+                                ePreElse = linha.Substring(linha.IndexOf("else=\"") + "else=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("else=\"") + "else=\"".Length).ToString().IndexOf("\""));
+                            }
+
+                            if (preconditionSQL == "")
+                            {
+                                preconditionSQL = "<precondition " + concatXMLPreconditionParams() + "/>";
+                            }
+                            else
+                            {
+                                preconditionSQL = preconditionSQL + "\n<precondition " + concatXMLPreconditionParams() + "/>";
+                            }
+                        }
+
+                        if (linha.Contains("<postcondition"))
+                        {
+                            //Recupera a info de if em postcondition (ExtraXML)
+                            if (linha.Contains("<postcondition") && linha.Contains("if"))
+                            {
+                                ePostIf = linha.Substring(linha.IndexOf("if=\"") + "if=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("if=\"") + "if=\"".Length).ToString().IndexOf("\""));
+                            }
+
+                            //Recupera a info de then em postcondition (ExtraXML)
+                            if (linha.Contains("<postcondition") && linha.Contains("then"))
+                            {
+                                ePostThen = linha.Substring(linha.IndexOf("then=\"") + "then=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("then=\"") + "then=\"".Length).ToString().IndexOf("\""));
+                            }
+
+                            //Recupera a info de then em postcondition (ExtraXML)
+                            if (linha.Contains("<postcondition") && linha.Contains("else"))
+                            {
+                                ePostThen = linha.Substring(linha.IndexOf("else=\"") + "else=\"".Length).ToString().Substring(0, linha.Substring(linha.IndexOf("else=\"") + "else=\"".Length).ToString().IndexOf("\""));
+                            }
+
+                            if (postconditionSQL == "")
+                            {
+                                postconditionSQL = "<postcondition " + concatXMLPostconditionParams() + "/>";
+                            }
+                            else
+                            {
+                                postconditionSQL = postconditionSQL + "\n<postcondition " + concatXMLPostconditionParams() + "/>";
+                            }
+                        }
+                    }
+
+                    //Demarca o fim do item
+                    if (linha.Contains("</item")) // && qAlias.Replace("'","") == textBox1.Text)
+                    {
+                        ////##### QUESTION OUTPUT #####
+                        if (radioButton1.Checked == false)
+                        {
+                            questionsSQL = "INSERT INTO [panelsmartindiaRegular].[dbo].[psQuestionsStatic] ([survey],[surveyLevel],[qCode],[qType],[qText],[qNextQ],[qVar1],[qVar2],[qVar3],[qVar4],[qVar5],[qVar6],[qVar7],[qVar8],[qVar9],[qVar10],[qVar11],[qVar12],[qVar13],[qVar14],[qVar15],[qVarLabel],[qVarCode],[qParams],[qChoiceSeq],[qChoiceLookup]) "
+                                + "\nVALUES ('INDLUMI',SurveyLevel," + qAlias + "," + qType + "," + qText + "," + xPCFinalGoto + "," + qAlias + ",NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL," + concatQuestionParams() + "," + qOrder + "," + qEnable_lookup + ")";
+                            if (radioButton3.Checked == true)
+                            {
+                                Clipboard.SetText(questionsSQL);
+                                MessageBox.Show(questionsSQL);
+                            }
+                            addToFinalSQLQuery(questionsSQL);
+
+                        }
+                        else if (radioButton1.Checked == true)
+                        {
+                            questionsSQL = "UPDATE [panelsmartindiaRegular].[dbo].[psQuestionsStatic] SET [qCode] = " + qAlias + ", [qType] = " + qType + ", [qText] = " + qText + ", [qNextQ] = " + xPCFinalGoto + ", [qVar1] = " + qAlias + ", [qParams] = " + concatQuestionParams() + ", [qChoiceSeq] = " + qOrder + ", [qChoiceLookup] = " + qEnable_lookup
+                                + "\nWHERE [survey] = 'INDLUMI' AND [qCode] = " + qAlias;
+                            if (radioButton3.Checked == true)
+                            {
+                                Clipboard.SetText(questionsSQL);
+                                MessageBox.Show(questionsSQL);
+                            }
+                            addToFinalSQLQuery(questionsSQL);
+                        }
+
+                        //##### ANSWER OUTPUT #####
+                        if (answersSQL != "")
+                        {
+                            if (radioButton3.Checked == true)
+                            {
+                                Clipboard.SetText(answersSQL);
+                                MessageBox.Show(answersSQL);
+                            }
+                            addToFinalSQLQuery(answersSQL);
+                        }
+
+                        ////##### ExtraXML OUTPUT #####
+                        if (preconditionSQL != "" || postconditionSQL != "")
+                        {
+                            //Caso não haja valores de precondition, torna esta variável NULL ou adiciona aspas
+                            if (preconditionSQL == "")
+                            {
+                                preconditionSQL = "NULL";
+                            } 
+                            else if (preconditionSQL != "")
+                            {
+                                preconditionSQL = "'" + preconditionSQL + "'";
+                            }
+                            
+                            //Caso não haja valores de postcondition, torna esta variável NULL ou adiciona aspas
+                            if (postconditionSQL == "")
+                            {
+                                postconditionSQL = "NULL";
+                            }
+                            else if (postconditionSQL != "")
+                            {
+                                postconditionSQL = "'" + postconditionSQL + "'";
+                            }
+
+                            //Define uma string diferente consoante se trate de um UPDATE ou de um INSERT
+                            if (radioButton1.Checked == false)
+                            {
+                                if (radioButton3.Checked == true)
+                                {
+                                    Clipboard.SetText("INSERT INTO [panelsmartindiaRegular].[dbo].[psQuestionExtraXML] ([survey], [qCode], [qStartXML], [qEndXML]) VALUES ('INDLUMI', " + qAlias + ", " + preconditionSQL + ", " + postconditionSQL);
+                                    MessageBox.Show("INSERT INTO [panelsmartindiaRegular].[dbo].[psQuestionExtraXML] ([survey], [qCode], [qStartXML], [qEndXML]) VALUES ('INDLUMI', " + qAlias + ", " + preconditionSQL + ", " + postconditionSQL);
+                                }
+                                addToFinalSQLQuery("INSERT INTO [panelsmartindiaRegular].[dbo].[psQuestionExtraXML] ([survey], [qCode], [qStartXML], [qEndXML]) VALUES ('INDLUMI', " + qAlias + ", " + preconditionSQL + ", " + postconditionSQL);
+                            }
+                            else if (radioButton1.Checked == true)
+                            {
+                                if (radioButton3.Checked == true)
+                                {
+                                    Clipboard.SetText("UPDATE [panelsmartindiaRegular].[dbo].[psQuestionExtraXML]\nSET [qStartXML] = " + preconditionSQL + ", [qEndXML] = " + postconditionSQL + "\nWHERE [survey] = 'INDLUMI' AND [qCode] = " + qAlias);
+                                    MessageBox.Show("UPDATE [panelsmartindiaRegular].[dbo].[psQuestionExtraXML]\nSET [qStartXML] = " + preconditionSQL + ", [qEndXML] = " + postconditionSQL + "\nWHERE [survey] = 'INDLUMI' AND [qCode] = " + qAlias);                                    
+                                }
+                                addToFinalSQLQuery("UPDATE [panelsmartindiaRegular].[dbo].[psQuestionExtraXML]\nSET [qStartXML] = " + preconditionSQL + ", [qEndXML] = " + postconditionSQL + "\nWHERE [survey] = 'INDLUMI' AND [qCode] = " + qAlias);
+                            }
+                                
+                        }
+
+                    //##### LIMPAR ######
+                        Clean();
+                    } else if (linha.Contains("</item") && qAlias.Replace("'", "") != textBox1.Text)
+                    {
+                        Clean();
+                    }
+                    //Acrescenta um valor à progressBar1
+                    progressBar1.Value += 1;
+                }
+                //Faz reset à progressBar1 e torna-a invisível;
+                progressBar1.Value = 0;
+                progressBar1.Visible = false;
+            }
+            else
+            {
+                MessageBox.Show("Import an XML file first");
+            }
+        }
+    }
+}
